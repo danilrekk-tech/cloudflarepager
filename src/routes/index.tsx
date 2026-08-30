@@ -1,19 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Rocket, Loader2, PackageSearch, ShieldCheck, Zap } from "lucide-react";
+import { Rocket, Loader2, PackageSearch, ShieldCheck, Zap, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dropzone } from "@/components/deploy/Dropzone";
 import { CheckList } from "@/components/deploy/CheckList";
 import { SitePreview } from "@/components/deploy/SitePreview";
+import { EditorOverlay, type Upload } from "@/components/deploy/EditorOverlay";
 import { SiteCard } from "@/components/deploy/SiteCard";
 import { readZip, formatBytes, type FileMap } from "@/lib/pipeline/zip";
 import { buildSite, composeHtml, makeTextFile, type BuildResult } from "@/lib/pipeline/build";
 import type { Patch } from "@/lib/pipeline/overrides";
 import { deploySite } from "@/lib/cf.functions";
 import { useSites, toBase64 } from "@/lib/sites";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
