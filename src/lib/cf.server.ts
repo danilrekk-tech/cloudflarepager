@@ -37,7 +37,7 @@ async function cfFetch<T>(url: string, token: string, init?: RequestInit): Promi
   if (!json.success) {
     const err = json.errors?.[0];
     const e = new Error(err?.message ?? `Ошибка Cloudflare (${res.status})`) as Error & {
-      code?: number;
+      code?: number | undefined;
     };
     e.code = err?.code;
     throw e;
