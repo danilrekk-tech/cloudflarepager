@@ -344,7 +344,21 @@ ${analysis.usesTailwind ? '<script src="https://cdn.tailwindcss.com"></script>' 
     analysis,
     checks,
     html,
+    baseHtml,
     files: out,
     totalSize: out.reduce((n, f) => n + f.bytes.length, 0),
   };
 }
+
+export function composeHtml(baseHtml: string, patches: Patch[], navStub: boolean) {
+  return injectBodyEnd(baseHtml, `<script>${runtimeScript(patches, navStub)}</script>`);
+}
+
+export function withEditor(html: string, editorScript: string) {
+  return injectBodyEnd(html, `<script>${editorScript}</script>`);
+}
+
+export function makeTextFile(path: string, text: string) {
+  return textFile(path, text);
+}
+
