@@ -287,7 +287,12 @@ export async function buildSite(
       });
       throw e;
     }
-    const css = analysis.cssFiles.map((p) => files[p]!.text ?? "").join("\n");
+    const css = analysis.cssFiles
+      .map((p) => files[p]!.text ?? "")
+      .join("\n")
+      // Tailwind source directives are meaningless in a static bundle (the CDN runtime handles them)
+      .replace(/^\s*@tailwind[^;]*;\s*$/gm, "")
+      .replace(/@apply[^;]*;/g, "");
     html = `<!doctype html>
 <html lang="ru">
 <head>
