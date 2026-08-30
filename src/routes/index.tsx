@@ -64,6 +64,22 @@ function Index() {
   const [navStub, setNavStub] = useState(true);
   const [projectName, setProjectName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [uploads, setUploads] = useState<Upload[]>([]);
+  const [editorOpen, setEditorOpen] = useState(false);
+
+  function resetAll() {
+    setPhase("idle");
+    setFileName(null);
+    setFiles(null);
+    setResult(null);
+    setPatches([]);
+    setUploads([]);
+    setProjectName("");
+    setError(null);
+    setEditorOpen(false);
+    toast.info("Загрузка архива отменена");
+  }
+
 
   async function handleFile(file: File) {
     setPhase("analyzing");
