@@ -19,7 +19,7 @@ export type Slot = {
   width: number;
   height: number;
   natural?: { w: number; h: number } | undefined;
-  broken?: boolean;
+  broken?: boolean | undefined;
 };
 
 export const NAV_STUB_MESSAGE = "Раздел в разработке";
