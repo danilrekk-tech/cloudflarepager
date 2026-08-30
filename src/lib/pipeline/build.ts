@@ -316,13 +316,12 @@ ${analysis.usesTailwind ? '<script src="https://cdn.tailwindcss.com"></script>' 
     html = injectHead(html, '<script src="https://cdn.tailwindcss.com"></script>');
   }
 
-  html = injectBodyEnd(
-    html,
-    `<script>${runtimeScript(opts.patches, opts.navStub)}</script>`,
-  );
+  const baseHtml = html;
+  html = composeHtml(baseHtml, opts.patches, opts.navStub);
 
   out.unshift(textFile("index.html", html));
   out.push(textFile("404.html", html));
+
   out.push(textFile("_redirects", "/*  /index.html  200\n"));
   out.push(
     textFile(
