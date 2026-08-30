@@ -10,6 +10,7 @@ export type BuildResult = {
   analysis: Analysis;
   checks: Check[];
   html: string;
+  baseHtml: string;
   files: OutFile[];
   totalSize: number;
 };
