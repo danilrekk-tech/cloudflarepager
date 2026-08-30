@@ -14,7 +14,130 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      annotations: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          site_id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          site_id: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          site_id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "annotations_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback: {
+        Row: {
+          author_name: string
+          created_at: string
+          element_label: string
+          id: string
+          kind: string
+          message: string
+          page_url: string
+          selector: string
+          site_id: string
+          status: string
+          x: number
+          y: number
+        }
+        Insert: {
+          author_name?: string
+          created_at?: string
+          element_label?: string
+          id?: string
+          kind?: string
+          message: string
+          page_url?: string
+          selector?: string
+          site_id: string
+          status?: string
+          x?: number
+          y?: number
+        }
+        Update: {
+          author_name?: string
+          created_at?: string
+          element_label?: string
+          id?: string
+          kind?: string
+          message?: string
+          page_url?: string
+          selector?: string
+          site_id?: string
+          status?: string
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sites: {
+        Row: {
+          created_at: string
+          feedback_enabled: boolean
+          feedback_token: string
+          id: string
+          project_name: string
+          title: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_enabled?: boolean
+          feedback_token?: string
+          id?: string
+          project_name: string
+          title?: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_enabled?: boolean
+          feedback_token?: string
+          id?: string
+          project_name?: string
+          title?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
