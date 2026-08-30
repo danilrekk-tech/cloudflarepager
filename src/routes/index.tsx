@@ -212,6 +212,15 @@ function Index() {
                 )}
                 {phase === "deploying" ? "Публикуем…" : "Опубликовать на Cloudflare Pages"}
               </Button>
+              <Button
+                className="w-full"
+                variant="outline"
+                disabled={phase === "deploying"}
+                onClick={resetAll}
+              >
+                <X className="size-4" />
+                Отменить и убрать архив
+              </Button>
               {files && (
                 <p className="text-xs text-muted-foreground">
                   В архиве: {Object.keys(files).length} файлов · тип: {result.analysis.framework}
@@ -226,9 +235,24 @@ function Index() {
             setPatches={setPatches}
             navStub={navStub}
             setNavStub={setNavStub}
+            onOpenEditor={() => setEditorOpen(true)}
           />
         </div>
       )}
+
+      {editorOpen && result && (
+        <EditorOverlay
+          baseHtml={result.baseHtml}
+          patches={patches}
+          setPatches={setPatches}
+          navStub={navStub}
+          setNavStub={setNavStub}
+          uploads={uploads}
+          setUploads={setUploads}
+          onClose={() => setEditorOpen(false)}
+        />
+      )}
+
 
       {sites.length > 0 && (
         <section className="mt-14">
