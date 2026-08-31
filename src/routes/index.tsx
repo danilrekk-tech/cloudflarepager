@@ -57,6 +57,9 @@ function slugFromName(name: string) {
 
 function Index() {
   const deploy = useServerFn(deploySite);
+  const prepare = useServerFn(prepareSite);
+  const finalize = useServerFn(finalizeSite);
+  const { user } = useAuth();
   const { sites, addSite, removeSite } = useSites();
 
   const [phase, setPhase] = useState<Phase>("idle");
