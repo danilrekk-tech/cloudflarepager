@@ -14,7 +14,10 @@ import { readZip, formatBytes, type FileMap } from "@/lib/pipeline/zip";
 import { buildSite, composeHtml, makeTextFile, type BuildResult } from "@/lib/pipeline/build";
 import type { Patch } from "@/lib/pipeline/overrides";
 import { deploySite } from "@/lib/cf.functions";
+import { prepareSite, finalizeSite } from "@/lib/db.functions";
+import { feedbackWidgetScript } from "@/lib/feedback-widget";
 import { useSites, toBase64 } from "@/lib/sites";
+import { useAuth } from "@/hooks/useAuth";
 
 
 export const Route = createFileRoute("/")({
