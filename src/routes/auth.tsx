@@ -40,7 +40,11 @@ function AuthPage() {
 
   async function google() {
     try {
-      await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) throw error;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось войти через Google");
     }
