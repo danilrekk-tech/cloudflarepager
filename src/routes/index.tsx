@@ -140,6 +140,13 @@ function Index() {
         contentType: f.contentType,
       }));
       const res = await deploy({ data: { projectName, files: payload } });
+      if (siteRow) {
+        try {
+          await finalize({ data: { id: siteRow.id, url: res.url } });
+        } catch {
+          /* history stays local */
+        }
+      }
       addSite({
         projectName: res.projectName,
         url: res.url,
