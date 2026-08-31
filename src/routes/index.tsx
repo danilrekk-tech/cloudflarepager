@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Rocket, Loader2, PackageSearch, ShieldCheck, Zap, X } from "lucide-react";
@@ -14,7 +14,10 @@ import { readZip, formatBytes, type FileMap } from "@/lib/pipeline/zip";
 import { buildSite, composeHtml, makeTextFile, type BuildResult } from "@/lib/pipeline/build";
 import type { Patch } from "@/lib/pipeline/overrides";
 import { deploySite } from "@/lib/cf.functions";
+import { prepareSite, finalizeSite } from "@/lib/db.functions";
+import { feedbackWidgetScript } from "@/lib/feedback-widget";
 import { useSites, toBase64 } from "@/lib/sites";
+import { useAuth } from "@/hooks/useAuth";
 
 
 export const Route = createFileRoute("/")({
@@ -54,6 +57,9 @@ function slugFromName(name: string) {
 
 function Index() {
   const deploy = useServerFn(deploySite);
+  const prepare = useServerFn(prepareSite);
+  const finalize = useServerFn(finalizeSite);
+  const { user } = useAuth();
   const { sites, addSite, removeSite } = useSites();
 
   const [phase, setPhase] = useState<Phase>("idle");
@@ -107,7 +113,24 @@ function Index() {
     if (!result) return;
     setPhase("deploying");
     try {
-      const html = composeHtml(result.baseHtml, patches, navStub);
+      let siteRow: { id: string; feedback_token: string } | null = null;
+      if (user) {
+        try {
+          siteRow = (await prepare({
+            data: { projectName, title: fileName ?? projectName },
+          })) as { id: string; feedback_token: string };
+        } catch {
+          siteRow = null;
+        }
+      }
+
+      let html = composeHtml(result.baseHtml, patches, navStub);
+      if (siteRow?.feedback_token) {
+        html = html.replace(
+          /<\/body>/i,
+          `<script>${feedbackWidgetScript(siteRow.feedback_token)}</script></body>`,
+        );
+      }
       const outFiles = result.files.map((f) =>
         f.path === "index.html" || f.path === "404.html" ? makeTextFile(f.path, html) : f,
       );
@@ -117,6 +140,13 @@ function Index() {
         contentType: f.contentType,
       }));
       const res = await deploy({ data: { projectName, files: payload } });
+      if (siteRow) {
+        try {
+          await finalize({ data: { id: siteRow.id, url: res.url } });
+        } catch {
+          /* history stays local */
+        }
+      }
       addSite({
         projectName: res.projectName,
         url: res.url,
@@ -136,9 +166,22 @@ function Index() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 md:py-16">
       <header className="mb-10 flex flex-col gap-4">
-        <Badge variant="outline" className="w-fit border-primary/40 text-primary">
-          ZIP → живой сайт
-        </Badge>
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge variant="outline" className="w-fit border-primary/40 text-primary">
+            ZIP → живой сайт
+          </Badge>
+          <div className="ml-auto">
+            {user ? (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/dashboard">Мои сайты и замечания</Link>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/auth">Войти через Google</Link>
+              </Button>
+            )}
+          </div>
+        </div>
         <h1 className="max-w-3xl text-4xl font-bold md:text-6xl">
           Загрузите архив — получите работающий сайт на Cloudflare&nbsp;Pages
         </h1>
