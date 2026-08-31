@@ -113,7 +113,24 @@ function Index() {
     if (!result) return;
     setPhase("deploying");
     try {
-      const html = composeHtml(result.baseHtml, patches, navStub);
+      let siteRow: { id: string; feedback_token: string } | null = null;
+      if (user) {
+        try {
+          siteRow = (await prepare({
+            data: { projectName, title: fileName ?? projectName },
+          })) as { id: string; feedback_token: string };
+        } catch {
+          siteRow = null;
+        }
+      }
+
+      let html = composeHtml(result.baseHtml, patches, navStub);
+      if (siteRow?.feedback_token) {
+        html = html.replace(
+          /<\/body>/i,
+          `<script>${feedbackWidgetScript(siteRow.feedback_token)}</script></body>`,
+        );
+      }
       const outFiles = result.files.map((f) =>
         f.path === "index.html" || f.path === "404.html" ? makeTextFile(f.path, html) : f,
       );
