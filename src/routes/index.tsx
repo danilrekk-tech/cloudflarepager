@@ -166,9 +166,22 @@ function Index() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 md:py-16">
       <header className="mb-10 flex flex-col gap-4">
-        <Badge variant="outline" className="w-fit border-primary/40 text-primary">
-          ZIP → живой сайт
-        </Badge>
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge variant="outline" className="w-fit border-primary/40 text-primary">
+            ZIP → живой сайт
+          </Badge>
+          <div className="ml-auto">
+            {user ? (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/dashboard">Мои сайты и замечания</Link>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/auth">Войти через Google</Link>
+              </Button>
+            )}
+          </div>
+        </div>
         <h1 className="max-w-3xl text-4xl font-bold md:text-6xl">
           Загрузите архив — получите работающий сайт на Cloudflare&nbsp;Pages
         </h1>
