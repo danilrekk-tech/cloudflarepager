@@ -53,6 +53,8 @@ type FeedbackRow = {
   kind: string;
   selector: string;
   element_label: string;
+  breadcrumb?: string;
+  element_html?: string;
   message: string;
   author_name: string;
   page_url: string;
