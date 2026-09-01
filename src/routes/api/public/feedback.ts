@@ -54,6 +54,8 @@ export const Route = createFileRoute("/api/public/feedback")({
           kind: body.kind,
           selector: body.selector,
           element_label: body.label,
+          breadcrumb: body.breadcrumb,
+          element_html: body.html,
           message: body.message,
           author_name: body.author,
           page_url: body.page,
