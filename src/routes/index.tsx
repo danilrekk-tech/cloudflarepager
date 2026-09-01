@@ -18,6 +18,7 @@ import { prepareSite, finalizeSite } from "@/lib/db.functions";
 import { feedbackWidgetScript } from "@/lib/feedback-widget";
 import { useSites, toBase64 } from "@/lib/sites";
 import { useAuth } from "@/hooks/useAuth";
+import { loadBundle, saveBundle } from "@/lib/bundle-store";
 
 
 export const Route = createFileRoute("/")({
