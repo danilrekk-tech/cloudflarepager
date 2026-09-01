@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Rocket, Loader2, PackageSearch, ShieldCheck, Zap, X } from "lucide-react";
 import { toast } from "sonner";
