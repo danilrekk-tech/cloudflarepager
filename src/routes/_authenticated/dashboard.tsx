@@ -2,7 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Globe, ExternalLink, RefreshCw, Trash2, MessageSquare, Check, Copy } from "lucide-react";
+import {
+  Globe,
+  ExternalLink,
+  RefreshCw,
+  Trash2,
+  MessageSquare,
+  Check,
+  Copy,
+  Pencil,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
