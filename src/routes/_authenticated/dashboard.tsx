@@ -190,6 +190,11 @@ function Dashboard() {
                     <ExternalLink className="size-4" /> Открыть
                   </a>
                 </Button>
+                <Button size="sm" variant="secondary" asChild onClick={(e) => e.stopPropagation()}>
+                  <Link to="/" search={{ edit: s.project_name }}>
+                    <Pencil className="size-4" /> Редактировать
+                  </Link>
+                </Button>
                 <Button
                   size="sm"
                   variant="ghost"
