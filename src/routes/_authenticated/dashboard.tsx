@@ -2,7 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Globe, ExternalLink, RefreshCw, Trash2, MessageSquare, Check, Copy } from "lucide-react";
+import {
+  Globe,
+  ExternalLink,
+  RefreshCw,
+  Trash2,
+  MessageSquare,
+  Check,
+  Copy,
+  Pencil,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -53,6 +62,8 @@ type FeedbackRow = {
   kind: string;
   selector: string;
   element_label: string;
+  breadcrumb?: string;
+  element_html?: string;
   message: string;
   author_name: string;
   page_url: string;
@@ -188,6 +199,11 @@ function Dashboard() {
                     <ExternalLink className="size-4" /> Открыть
                   </a>
                 </Button>
+                <Button size="sm" variant="secondary" asChild onClick={(e) => e.stopPropagation()}>
+                  <Link to="/" search={{ edit: s.project_name }}>
+                    <Pencil className="size-4" /> Редактировать
+                  </Link>
+                </Button>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -262,13 +278,37 @@ function Dashboard() {
                   <span>{new Date(f.created_at).toLocaleString("ru-RU")}</span>
                 </div>
                 <p className="mt-2 text-sm">{f.message}</p>
-                {f.element_label && (
-                  <p className="mt-1 text-xs text-muted-foreground">Элемент: {f.element_label}</p>
-                )}
-                {f.selector && (
-                  <p className="mt-1 font-mono text-[11px] break-all text-muted-foreground">
-                    {f.selector}
-                  </p>
+                {(f.element_label || f.selector) && (
+                  <div className="mt-2 rounded-lg border border-border bg-surface-2 p-2">
+                    <p className="text-xs font-medium">
+                      {f.element_label || "Элемент страницы"}
+                    </p>
+                    {f.breadcrumb && (
+                      <p className="mt-1 font-mono text-[11px] break-all text-muted-foreground">
+                        {f.breadcrumb}
+                      </p>
+                    )}
+                    {f.selector && (
+                      <p className="mt-1 font-mono text-[11px] break-all text-muted-foreground">
+                        CSS: {f.selector}
+                      </p>
+                    )}
+                    {f.element_html && (
+                      <pre className="mt-1 max-h-24 overflow-auto rounded bg-background p-2 font-mono text-[10px] whitespace-pre-wrap text-muted-foreground">
+                        {f.element_html}
+                      </pre>
+                    )}
+                    {f.page_url && f.selector && (
+                      <a
+                        className="mt-2 inline-flex items-center gap-1 text-xs text-accent hover:underline"
+                        href={`${f.page_url}#pxfb=${encodeURIComponent(f.selector)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ExternalLink className="size-3" /> Показать этот элемент на сайте
+                      </a>
+                    )}
+                  </div>
                 )}
                 <div className="mt-2 flex gap-2">
                   <Button

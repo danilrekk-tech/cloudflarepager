@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Rocket, Loader2, PackageSearch, ShieldCheck, Zap, X } from "lucide-react";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import { prepareSite, finalizeSite } from "@/lib/db.functions";
 import { feedbackWidgetScript } from "@/lib/feedback-widget";
 import { useSites, toBase64 } from "@/lib/sites";
 import { useAuth } from "@/hooks/useAuth";
+import { loadBundle, saveBundle } from "@/lib/bundle-store";
 
 
 export const Route = createFileRoute("/")({
@@ -38,6 +39,9 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+  }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    edit: typeof search['edit'] === "string" ? (search['edit'] as string) : undefined,
   }),
   component: Index,
 });
@@ -72,6 +76,28 @@ function Index() {
   const [error, setError] = useState<string | null>(null);
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
+  const { edit } = Route.useSearch();
+
+  // Re-open an already published site for editing (bundle kept in the browser).
+  useEffect(() => {
+    if (!edit) return;
+    void loadBundle(edit).then((b) => {
+      if (!b) {
+        toast.error("Сборка этого сайта недоступна в этом браузере — загрузите архив заново");
+        return;
+      }
+      setResult(b.result);
+      setPatches(b.patches);
+      setNavStub(b.navStub);
+      setProjectName(b.projectName);
+      setFileName(b.title);
+      setDeployedUrl(b.url);
+      setPhase("done");
+      toast.success("Сайт открыт для редактирования — измените и передеплойте");
+    });
+  }, [edit]);
+
 
   function resetAll() {
     setPhase("idle");

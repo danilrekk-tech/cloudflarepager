@@ -52,7 +52,9 @@ export type Database = {
       feedback: {
         Row: {
           author_name: string
+          breadcrumb: string
           created_at: string
+          element_html: string
           element_label: string
           id: string
           kind: string
@@ -66,7 +68,9 @@ export type Database = {
         }
         Insert: {
           author_name?: string
+          breadcrumb?: string
           created_at?: string
+          element_html?: string
           element_label?: string
           id?: string
           kind?: string
@@ -80,7 +84,9 @@ export type Database = {
         }
         Update: {
           author_name?: string
+          breadcrumb?: string
           created_at?: string
+          element_html?: string
           element_label?: string
           id?: string
           kind?: string
