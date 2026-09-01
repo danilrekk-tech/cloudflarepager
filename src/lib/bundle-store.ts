@@ -2,14 +2,13 @@
  * Persists built site bundles in IndexedDB so a published site can be
  * re-opened in the editor later and re-deployed with new changes.
  */
-import type { OutFile } from "@/lib/pipeline/build";
+import type { BuildResult } from "@/lib/pipeline/build";
 import type { Patch } from "@/lib/pipeline/overrides";
 
 export type StoredBundle = {
   projectName: string;
   title: string;
-  baseHtml: string;
-  files: OutFile[];
+  result: BuildResult;
   patches: Patch[];
   navStub: boolean;
   url: string;
