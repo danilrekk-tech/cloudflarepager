@@ -13,6 +13,8 @@ const schema = z.object({
   author: z.string().max(120).optional().default(""),
   selector: z.string().max(2000).optional().default(""),
   label: z.string().max(300).optional().default(""),
+  breadcrumb: z.string().max(1000).optional().default(""),
+  html: z.string().max(2000).optional().default(""),
   page: z.string().max(2000).optional().default(""),
   x: z.number().optional().default(0),
   y: z.number().optional().default(0),
