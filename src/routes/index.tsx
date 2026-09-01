@@ -76,6 +76,28 @@ function Index() {
   const [error, setError] = useState<string | null>(null);
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
+  const { edit } = Route.useSearch();
+
+  // Re-open an already published site for editing (bundle kept in the browser).
+  useEffect(() => {
+    if (!edit) return;
+    void loadBundle(edit).then((b) => {
+      if (!b) {
+        toast.error("Сборка этого сайта недоступна в этом браузере — загрузите архив заново");
+        return;
+      }
+      setResult(b.result);
+      setPatches(b.patches);
+      setNavStub(b.navStub);
+      setProjectName(b.projectName);
+      setFileName(b.title);
+      setDeployedUrl(b.url);
+      setPhase("done");
+      toast.success("Сайт открыт для редактирования — измените и передеплойте");
+    });
+  }, [edit]);
+
 
   function resetAll() {
     setPhase("idle");
