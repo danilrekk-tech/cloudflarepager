@@ -80,23 +80,30 @@ function Index() {
   const { edit } = Route.useSearch();
 
   // Re-open an already published site for editing (bundle kept in the browser).
+  async function openForEdit(name: string) {
+    const b = await loadBundle(name);
+    if (!b) {
+      toast.error("Сборка этого сайта недоступна в этом браузере — загрузите архив заново");
+      return;
+    }
+    setResult(b.result);
+    setPatches(b.patches);
+    setNavStub(b.navStub);
+    setProjectName(b.projectName);
+    setFileName(b.title);
+    setDeployedUrl(b.url);
+    setPhase("done");
+    setError(null);
+    toast.success("Сайт открыт для редактирования — измените и передеплойте");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   useEffect(() => {
     if (!edit) return;
-    void loadBundle(edit).then((b) => {
-      if (!b) {
-        toast.error("Сборка этого сайта недоступна в этом браузере — загрузите архив заново");
-        return;
-      }
-      setResult(b.result);
-      setPatches(b.patches);
-      setNavStub(b.navStub);
-      setProjectName(b.projectName);
-      setFileName(b.title);
-      setDeployedUrl(b.url);
-      setPhase("done");
-      toast.success("Сайт открыт для редактирования — измените и передеплойте");
-    });
+    void openForEdit(edit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edit]);
+
 
 
   function resetAll() {
