@@ -179,6 +179,18 @@ function Index() {
         createdAt: new Date().toISOString(),
         title: fileName ?? res.projectName,
       });
+      await saveBundle({
+        projectName: res.projectName,
+        title: fileName ?? res.projectName,
+        result,
+        patches,
+        navStub,
+        url: res.url,
+        ...(siteRow?.id ? { siteId: siteRow.id } : {}),
+        ...(siteRow?.feedback_token ? { feedbackToken: siteRow.feedback_token } : {}),
+        updatedAt: new Date().toISOString(),
+      });
+      setDeployedUrl(res.url);
       setPhase("done");
       toast.success("Сайт опубликован на Cloudflare Pages");
     } catch (e) {
@@ -186,6 +198,7 @@ function Index() {
       toast.error(e instanceof Error ? e.message : "Ошибка публикации");
     }
   }
+
 
   const busy = phase === "analyzing" || phase === "deploying";
 
