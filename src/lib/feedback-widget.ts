@@ -6,6 +6,12 @@ export function feedbackWidgetScript(token: string, endpoint: string = FEEDBACK_
   return `(function(){
   var TOKEN = ${JSON.stringify(token)};
   var ENDPOINT = ${JSON.stringify(endpoint)};
+  fetch(ENDPOINT + "?token=" + encodeURIComponent(TOKEN))
+    .then(function(r){ return r.json(); })
+    .then(function(cfg){ if (cfg && cfg.enabled) start(cfg); })
+    .catch(function(){});
+
+  function start(cfg){
   var picking = false, target = null;
   var css = document.createElement("style");
   css.textContent = "#pxfb-btn{position:fixed;right:20px;bottom:20px;z-index:2147483000;background:#111827;color:#fff;border:0;border-radius:999px;padding:12px 18px;font:600 14px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.3)}"
@@ -146,5 +152,50 @@ export function feedbackWidgetScript(token: string, endpoint: string = FEEDBACK_
   }
   setTimeout(highlight, 500);
   window.addEventListener("hashchange", highlight);
+
+  // Saved callouts and arrows drawn by the owner in the dashboard.
+  function drawMarks(){
+    var list = (cfg && cfg.annotations) || [];
+    var old = document.getElementById("pxfb-marks");
+    if (old) old.remove();
+    if (!/[#&]pxann=1/.test(location.hash) || !list.length) return;
+    var layer = document.createElement("div");
+    layer.id = "pxfb-marks";
+    layer.style.cssText = "position:absolute;inset:0;z-index:2147482000;pointer-events:none";
+    var W = document.documentElement.scrollWidth, H = document.documentElement.scrollHeight;
+    var svgNs = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(svgNs, "svg");
+    svg.setAttribute("width", String(W)); svg.setAttribute("height", String(H));
+    svg.style.cssText = "position:absolute;left:0;top:0";
+    layer.appendChild(svg);
+    list.forEach(function(a){
+      var d = a.data || {};
+      if (a.type === "arrow"){
+        var line = document.createElementNS(svgNs, "line");
+        line.setAttribute("x1", String(d.x * W)); line.setAttribute("y1", String(d.y * H));
+        line.setAttribute("x2", String(d.x2 * W)); line.setAttribute("y2", String(d.y2 * H));
+        line.setAttribute("stroke", "#ef4444"); line.setAttribute("stroke-width", "3");
+        svg.appendChild(line);
+        var head = document.createElementNS(svgNs, "circle");
+        head.setAttribute("cx", String(d.x2 * W)); head.setAttribute("cy", String(d.y2 * H));
+        head.setAttribute("r", "6"); head.setAttribute("fill", "#ef4444");
+        svg.appendChild(head);
+      }
+      if (d.text){
+        var note = document.createElement("div");
+        note.textContent = d.text;
+        note.style.cssText = "position:absolute;max-width:260px;transform:translate(-50%,-120%);"
+          + "background:#ef4444;color:#fff;border-radius:10px;padding:6px 10px;"
+          + "font:600 13px/1.35 system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)";
+        note.style.left = (d.x * W) + "px";
+        note.style.top = (d.y * H) + "px";
+        layer.appendChild(note);
+      }
+    });
+    document.body.appendChild(layer);
+  }
+  drawMarks();
+  window.addEventListener("hashchange", drawMarks);
+  }
 })();`;
 }
