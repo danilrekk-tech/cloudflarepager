@@ -256,7 +256,20 @@ function Index() {
         </p>
       )}
 
+      {phase === "done" && deployedUrl && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
+          <span className="font-medium">Сайт опубликован:</span>
+          <a href={deployedUrl} target="_blank" rel="noreferrer" className="text-primary underline break-all">
+            {deployedUrl}
+          </a>
+          <span className="text-muted-foreground">
+            Меняйте текст и картинки ниже — затем нажмите «Применить изменения и передеплоить».
+          </span>
+        </div>
+      )}
+
       {result && (
+
         <div className="mt-10 grid gap-6 lg:grid-cols-[380px_1fr]">
           <section className="panel h-fit p-5">
             <h2 className="font-display text-lg font-semibold">Отчёт проверки</h2>
