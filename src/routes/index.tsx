@@ -40,9 +40,9 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    edit: typeof search['edit'] === "string" ? (search['edit'] as string) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { edit?: string } =>
+    typeof search['edit'] === "string" ? { edit: search['edit'] as string } : {},
+
   component: Index,
 });
 
