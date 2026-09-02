@@ -363,7 +363,7 @@ function Index() {
                 key={s.projectName}
                 site={s}
                 onRemoved={removeSite}
-                {...(result ? { onRedeploy: () => void handleDeploy() } : {})}
+                onRedeploy={openForEdit}
               />
             ))}
           </div>
