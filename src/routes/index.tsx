@@ -40,9 +40,9 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    edit: typeof search['edit'] === "string" ? (search['edit'] as string) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { edit?: string } =>
+    typeof search['edit'] === "string" ? { edit: search['edit'] as string } : {},
+
   component: Index,
 });
 
@@ -80,23 +80,30 @@ function Index() {
   const { edit } = Route.useSearch();
 
   // Re-open an already published site for editing (bundle kept in the browser).
+  async function openForEdit(name: string) {
+    const b = await loadBundle(name);
+    if (!b) {
+      toast.error("Сборка этого сайта недоступна в этом браузере — загрузите архив заново");
+      return;
+    }
+    setResult(b.result);
+    setPatches(b.patches);
+    setNavStub(b.navStub);
+    setProjectName(b.projectName);
+    setFileName(b.title);
+    setDeployedUrl(b.url);
+    setPhase("done");
+    setError(null);
+    toast.success("Сайт открыт для редактирования — измените и передеплойте");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   useEffect(() => {
     if (!edit) return;
-    void loadBundle(edit).then((b) => {
-      if (!b) {
-        toast.error("Сборка этого сайта недоступна в этом браузере — загрузите архив заново");
-        return;
-      }
-      setResult(b.result);
-      setPatches(b.patches);
-      setNavStub(b.navStub);
-      setProjectName(b.projectName);
-      setFileName(b.title);
-      setDeployedUrl(b.url);
-      setPhase("done");
-      toast.success("Сайт открыт для редактирования — измените и передеплойте");
-    });
+    void openForEdit(edit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edit]);
+
 
 
   function resetAll() {
@@ -179,6 +186,18 @@ function Index() {
         createdAt: new Date().toISOString(),
         title: fileName ?? res.projectName,
       });
+      await saveBundle({
+        projectName: res.projectName,
+        title: fileName ?? res.projectName,
+        result,
+        patches,
+        navStub,
+        url: res.url,
+        ...(siteRow?.id ? { siteId: siteRow.id } : {}),
+        ...(siteRow?.feedback_token ? { feedbackToken: siteRow.feedback_token } : {}),
+        updatedAt: new Date().toISOString(),
+      });
+      setDeployedUrl(res.url);
       setPhase("done");
       toast.success("Сайт опубликован на Cloudflare Pages");
     } catch (e) {
@@ -186,6 +205,7 @@ function Index() {
       toast.error(e instanceof Error ? e.message : "Ошибка публикации");
     }
   }
+
 
   const busy = phase === "analyzing" || phase === "deploying";
 
@@ -243,7 +263,20 @@ function Index() {
         </p>
       )}
 
+      {phase === "done" && deployedUrl && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
+          <span className="font-medium">Сайт опубликован:</span>
+          <a href={deployedUrl} target="_blank" rel="noreferrer" className="text-primary underline break-all">
+            {deployedUrl}
+          </a>
+          <span className="text-muted-foreground">
+            Меняйте текст и картинки ниже — затем нажмите «Применить изменения и передеплоить».
+          </span>
+        </div>
+      )}
+
       {result && (
+
         <div className="mt-10 grid gap-6 lg:grid-cols-[380px_1fr]">
           <section className="panel h-fit p-5">
             <h2 className="font-display text-lg font-semibold">Отчёт проверки</h2>
@@ -279,7 +312,12 @@ function Index() {
                 ) : (
                   <Rocket className="size-4" />
                 )}
-                {phase === "deploying" ? "Публикуем…" : "Опубликовать на Cloudflare Pages"}
+                {phase === "deploying"
+                  ? "Публикуем…"
+                  : phase === "done"
+                    ? "Применить изменения и передеплоить"
+                    : "Опубликовать на Cloudflare Pages"}
+
               </Button>
               <Button
                 className="w-full"
@@ -332,7 +370,7 @@ function Index() {
                 key={s.projectName}
                 site={s}
                 onRemoved={removeSite}
-                {...(result ? { onRedeploy: () => void handleDeploy() } : {})}
+                onRedeploy={(n) => void openForEdit(n)}
               />
             ))}
           </div>

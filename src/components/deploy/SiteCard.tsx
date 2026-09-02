@@ -89,9 +89,10 @@ export function SiteCard({
         </Button>
         {onRedeploy && (
           <Button size="sm" variant="secondary" onClick={() => onRedeploy(site.projectName)}>
-            Передеплоить
+            Редактировать и передеплоить
           </Button>
         )}
+
         <Button size="sm" variant="ghost" disabled={busy} onClick={destroy}>
           <Trash2 className="size-4 text-destructive" />
         </Button>
