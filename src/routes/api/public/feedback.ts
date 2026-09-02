@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "content-type",
 };
 
@@ -25,6 +25,37 @@ export const Route = createFileRoute("/api/public/feedback")({
   server: {
     handlers: {
       OPTIONS: () => new Response(null, { status: 204, headers: CORS }),
+      // Widget config: whether remarks are enabled + saved callouts/arrows.
+      GET: async ({ request }) => {
+        const token = new URL(request.url).searchParams.get("token") ?? "";
+        if (!z.string().uuid().safeParse(token).success) {
+          return new Response(JSON.stringify({ enabled: false }), {
+            status: 200,
+            headers: { ...CORS, "content-type": "application/json" },
+          });
+        }
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: site } = await supabaseAdmin
+          .from("sites")
+          .select("id, feedback_enabled")
+          .eq("feedback_token", token)
+          .maybeSingle();
+        if (!site || !site.feedback_enabled) {
+          return new Response(JSON.stringify({ enabled: false }), {
+            status: 200,
+            headers: { ...CORS, "content-type": "application/json" },
+          });
+        }
+        const { data: marks } = await supabaseAdmin
+          .from("annotations")
+          .select("id, type, data")
+          .eq("site_id", site.id)
+          .order("created_at", { ascending: true });
+        return new Response(JSON.stringify({ enabled: true, annotations: marks ?? [] }), {
+          status: 200,
+          headers: { ...CORS, "content-type": "application/json" },
+        });
+      },
       POST: async ({ request }) => {
         let payload: unknown;
         try {
