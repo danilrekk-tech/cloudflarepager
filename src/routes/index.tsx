@@ -305,7 +305,12 @@ function Index() {
                 ) : (
                   <Rocket className="size-4" />
                 )}
-                {phase === "deploying" ? "Публикуем…" : "Опубликовать на Cloudflare Pages"}
+                {phase === "deploying"
+                  ? "Публикуем…"
+                  : phase === "done"
+                    ? "Применить изменения и передеплоить"
+                    : "Опубликовать на Cloudflare Pages"}
+
               </Button>
               <Button
                 className="w-full"
