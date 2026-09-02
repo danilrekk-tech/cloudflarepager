@@ -370,7 +370,7 @@ function Index() {
                 key={s.projectName}
                 site={s}
                 onRemoved={removeSite}
-                onRedeploy={openForEdit}
+                onRedeploy={(n) => void openForEdit(n)}
               />
             ))}
           </div>
