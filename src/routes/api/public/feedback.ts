@@ -18,43 +18,32 @@ const schema = z.object({
   page: z.string().max(2000).optional().default(""),
   x: z.number().optional().default(0),
   y: z.number().optional().default(0),
-  kind: z.enum(["note", "element", "image"]).optional().default("note"),
+  w: z.number().optional().default(0),
+  h: z.number().optional().default(0),
+  selectedText: z.string().max(1000).optional().default(""),
+  kind: z.enum(["note", "element", "image", "area", "text"]).optional().default("note"),
 });
 
 export const Route = createFileRoute("/api/public/feedback")({
   server: {
     handlers: {
       OPTIONS: () => new Response(null, { status: 204, headers: CORS }),
-      // Widget config: whether remarks are enabled + saved callouts/arrows.
+      // Widget config: whether remarks are enabled for this site.
       GET: async ({ request }) => {
         const token = new URL(request.url).searchParams.get("token") ?? "";
-        if (!z.string().uuid().safeParse(token).success) {
-          return new Response(JSON.stringify({ enabled: false }), {
+        const json = (enabled: boolean) =>
+          new Response(JSON.stringify({ enabled }), {
             status: 200,
             headers: { ...CORS, "content-type": "application/json" },
           });
-        }
+        if (!z.string().uuid().safeParse(token).success) return json(false);
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: site } = await supabaseAdmin
           .from("sites")
           .select("id, feedback_enabled")
           .eq("feedback_token", token)
           .maybeSingle();
-        if (!site || !site.feedback_enabled) {
-          return new Response(JSON.stringify({ enabled: false }), {
-            status: 200,
-            headers: { ...CORS, "content-type": "application/json" },
-          });
-        }
-        const { data: marks } = await supabaseAdmin
-          .from("annotations")
-          .select("id, type, data")
-          .eq("site_id", site.id)
-          .order("created_at", { ascending: true });
-        return new Response(JSON.stringify({ enabled: true, annotations: marks ?? [] }), {
-          status: 200,
-          headers: { ...CORS, "content-type": "application/json" },
-        });
+        return json(Boolean(site?.feedback_enabled));
       },
       POST: async ({ request }) => {
         let payload: unknown;
