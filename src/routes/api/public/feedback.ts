@@ -18,7 +18,10 @@ const schema = z.object({
   page: z.string().max(2000).optional().default(""),
   x: z.number().optional().default(0),
   y: z.number().optional().default(0),
-  kind: z.enum(["note", "element", "image"]).optional().default("note"),
+  w: z.number().optional().default(0),
+  h: z.number().optional().default(0),
+  selectedText: z.string().max(1000).optional().default(""),
+  kind: z.enum(["note", "element", "image", "area", "text"]).optional().default("note"),
 });
 
 export const Route = createFileRoute("/api/public/feedback")({
