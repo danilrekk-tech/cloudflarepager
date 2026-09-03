@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/public/feedback")({
   server: {
     handlers: {
       OPTIONS: () => new Response(null, { status: 204, headers: CORS }),
-      // Widget config: whether remarks are enabled + saved callouts/arrows.
+      // Widget config: whether remarks are enabled for this site.
       GET: async ({ request }) => {
         const token = new URL(request.url).searchParams.get("token") ?? "";
         const json = (enabled: boolean) =>
@@ -45,6 +45,7 @@ export const Route = createFileRoute("/api/public/feedback")({
           .maybeSingle();
         return json(Boolean(site?.feedback_enabled));
       },
+      POST: async ({ request }) => {
         let payload: unknown;
         try {
           payload = await request.json();
