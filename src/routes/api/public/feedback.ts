@@ -31,35 +31,20 @@ export const Route = createFileRoute("/api/public/feedback")({
       // Widget config: whether remarks are enabled + saved callouts/arrows.
       GET: async ({ request }) => {
         const token = new URL(request.url).searchParams.get("token") ?? "";
-        if (!z.string().uuid().safeParse(token).success) {
-          return new Response(JSON.stringify({ enabled: false }), {
+        const json = (enabled: boolean) =>
+          new Response(JSON.stringify({ enabled }), {
             status: 200,
             headers: { ...CORS, "content-type": "application/json" },
           });
-        }
+        if (!z.string().uuid().safeParse(token).success) return json(false);
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: site } = await supabaseAdmin
           .from("sites")
           .select("id, feedback_enabled")
           .eq("feedback_token", token)
           .maybeSingle();
-        if (!site || !site.feedback_enabled) {
-          return new Response(JSON.stringify({ enabled: false }), {
-            status: 200,
-            headers: { ...CORS, "content-type": "application/json" },
-          });
-        }
-        const { data: marks } = await supabaseAdmin
-          .from("annotations")
-          .select("id, type, data")
-          .eq("site_id", site.id)
-          .order("created_at", { ascending: true });
-        return new Response(JSON.stringify({ enabled: true, annotations: marks ?? [] }), {
-          status: 200,
-          headers: { ...CORS, "content-type": "application/json" },
-        });
+        return json(Boolean(site?.feedback_enabled));
       },
-      POST: async ({ request }) => {
         let payload: unknown;
         try {
           payload = await request.json();
