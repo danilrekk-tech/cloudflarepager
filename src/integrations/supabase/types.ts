@@ -56,13 +56,16 @@ export type Database = {
           created_at: string
           element_html: string
           element_label: string
+          h: number
           id: string
           kind: string
           message: string
           page_url: string
+          selected_text: string
           selector: string
           site_id: string
           status: string
+          w: number
           x: number
           y: number
         }
@@ -72,13 +75,16 @@ export type Database = {
           created_at?: string
           element_html?: string
           element_label?: string
+          h?: number
           id?: string
           kind?: string
           message: string
           page_url?: string
+          selected_text?: string
           selector?: string
           site_id: string
           status?: string
+          w?: number
           x?: number
           y?: number
         }
@@ -88,13 +94,16 @@ export type Database = {
           created_at?: string
           element_html?: string
           element_label?: string
+          h?: number
           id?: string
           kind?: string
           message?: string
           page_url?: string
+          selected_text?: string
           selector?: string
           site_id?: string
           status?: string
+          w?: number
           x?: number
           y?: number
         }
