@@ -377,9 +377,28 @@ export function EditorOverlay({
 
               {tab === "uploads" && (
                 <div className="space-y-3">
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border px-3 py-4 text-sm hover:bg-muted">
-                    <Upload className="size-4" />
-                    Загрузить изображения
+                  <label
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDropping(true);
+                    }}
+                    onDragLeave={() => setDropping(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDropping(false);
+                      void onUpload(e.dataTransfer.files);
+                    }}
+                    className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-3 py-6 text-center text-sm transition ${
+                      dropping
+                        ? "border-accent bg-accent/15"
+                        : "border-border hover:border-accent hover:bg-muted"
+                    }`}
+                  >
+                    <Upload className="size-5 text-accent" />
+                    <span className="font-medium">Перетащите изображения сюда</span>
+                    <span className="text-xs text-muted-foreground">
+                      или нажмите, чтобы выбрать файлы (можно несколько)
+                    </span>
                     <input
                       type="file"
                       accept="image/*"
