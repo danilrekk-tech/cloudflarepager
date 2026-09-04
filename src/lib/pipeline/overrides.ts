@@ -70,6 +70,10 @@ export function runtimeScript(patches: Patch[], navStub: boolean) {
             if (!p.value) { toast(); return; }
             if (p.newTab) window.open(p.value, "_blank", "noopener"); else window.location.href = p.value;
           });
+        } else if (p.kind === "size") {
+          if (p.width) { el.style.width = p.width; el.style.maxWidth = "100%"; }
+          if (p.height) el.style.height = p.height;
+          if (p.fit) { el.style.objectFit = p.fit; el.style.backgroundSize = p.fit === "contain" ? "contain" : "cover"; }
         } else if (p.kind === "logo") {
           var id = "pxlogo-" + btoa(unescape(encodeURIComponent(p.selector + p.x + p.y))).replace(/[^a-z0-9]/gi,"");
           if (document.getElementById(id)) return;
