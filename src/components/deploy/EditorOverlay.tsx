@@ -14,6 +14,7 @@ import {
   Crosshair,
   PanelLeftClose,
   PanelLeftOpen,
+  Ruler,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
