@@ -181,7 +181,7 @@ export function EditorOverlay({
     toast.success("Изменение применено");
   }
 
-  async function onUpload(files: FileList | null) {
+  async function onUpload(files: FileList | null, applyToSelected = false) {
     if (!files) return;
     const next: Upload[] = [];
     for (const file of Array.from(files)) {
