@@ -14,6 +14,7 @@ import {
   Crosshair,
   PanelLeftClose,
   PanelLeftOpen,
+  Ruler,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -58,6 +59,10 @@ export function EditorOverlay({
   const [selected, setSelected] = useState<Slot | null>(null);
   const [value, setValue] = useState("");
   const [logoMode, setLogoMode] = useState<{ url: string; width: number } | null>(null);
+  const [dropping, setDropping] = useState(false);
+  const [sizeW, setSizeW] = useState("");
+  const [sizeH, setSizeH] = useState("");
+  const [fit, setFit] = useState("");
   const frameRef = useRef<HTMLIFrameElement>(null);
   const { sets, saveSet, removeSet } = usePatchSets();
 
@@ -114,6 +119,56 @@ export function EditorOverlay({
     return () => window.removeEventListener("message", onMessage);
   }, [patches, setPatches, logoMode]);
 
+  // Keep the size fields in sync with the currently selected element.
+  useEffect(() => {
+    if (!selected) {
+      setSizeW("");
+      setSizeH("");
+      setFit("");
+      return;
+    }
+    const s = patches.find((p) => p.kind === "size" && p.selector === selected.selector);
+    setSizeW(s && s.kind === "size" ? (s.width ?? "") : "");
+    setSizeH(s && s.kind === "size" ? (s.height ?? "") : "");
+    setFit(s && s.kind === "size" ? (s.fit ?? "") : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.selector, selected?.kind]);
+
+  function norm(v: string) {
+    const t = v.trim();
+    if (!t) return "";
+    return /^[0-9.]+$/.test(t) ? `${t}px` : t;
+  }
+
+  function applySize() {
+    if (!selected) return;
+    const w = norm(sizeW);
+    const h = norm(sizeH);
+    if (!w && !h && !fit) {
+      resetSize();
+      return;
+    }
+    setPatches(
+      upsertPatch(patches, {
+        kind: "size",
+        selector: selected.selector,
+        value: `${w}|${h}|${fit}`,
+        ...(w ? { width: w } : {}),
+        ...(h ? { height: h } : {}),
+        ...(fit ? { fit } : {}),
+      }),
+    );
+    toast.success("Размер применён");
+  }
+
+  function resetSize() {
+    if (!selected) return;
+    setSizeW("");
+    setSizeH("");
+    setFit("");
+    setPatches(patches.filter((p) => !(p.kind === "size" && p.selector === selected.selector)));
+  }
+
   function applyValue(next = value) {
     if (!selected) return;
     if (selected.kind === "link") {
@@ -126,7 +181,7 @@ export function EditorOverlay({
     toast.success("Изменение применено");
   }
 
-  async function onUpload(files: FileList | null) {
+  async function onUpload(files: FileList | null, applyToSelected = false) {
     if (!files) return;
     const next: Upload[] = [];
     for (const file of Array.from(files)) {
@@ -146,6 +201,12 @@ export function EditorOverlay({
       next.push({ id: `${Date.now()}-${file.name}`, name: file.name, url, ...dim });
     }
     setUploads([...next, ...uploads]);
+    const first = next[0];
+    if (applyToSelected && first && selected?.kind === "image") {
+      setValue(first.url);
+      applyValue(first.url);
+      return;
+    }
     if (next.length) toast.success(`Загружено изображений: ${next.length}`);
   }
 
@@ -316,9 +377,28 @@ export function EditorOverlay({
 
               {tab === "uploads" && (
                 <div className="space-y-3">
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border px-3 py-4 text-sm hover:bg-muted">
-                    <Upload className="size-4" />
-                    Загрузить изображения
+                  <label
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDropping(true);
+                    }}
+                    onDragLeave={() => setDropping(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDropping(false);
+                      void onUpload(e.dataTransfer.files);
+                    }}
+                    className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-3 py-6 text-center text-sm transition ${
+                      dropping
+                        ? "border-accent bg-accent/15"
+                        : "border-border hover:border-accent hover:bg-muted"
+                    }`}
+                  >
+                    <Upload className="size-5 text-accent" />
+                    <span className="font-medium">Перетащите изображения сюда</span>
+                    <span className="text-xs text-muted-foreground">
+                      или нажмите, чтобы выбрать файлы (можно несколько)
+                    </span>
                     <input
                       type="file"
                       accept="image/*"
@@ -400,18 +480,96 @@ export function EditorOverlay({
             </div>
 
             {selected && (
-              <div className="space-y-2 border-t border-border p-3">
+              <div className="max-h-[46vh] space-y-3 overflow-y-auto border-t border-border p-3">
+                <div className="flex items-center gap-2">
+                  {selected.kind === "image" ? (
+                    <ImageIcon className="size-4 text-accent" />
+                  ) : selected.kind === "link" ? (
+                    <Link2 className="size-4 text-primary" />
+                  ) : (
+                    <Type className="size-4 text-muted-foreground" />
+                  )}
+                  <span className="truncate text-sm font-medium">
+                    {selected.label || selected.selector}
+                  </span>
+                </div>
                 <p className="font-mono text-[11px] break-all text-muted-foreground">
                   {selected.selector}
                 </p>
+
                 {selected.kind === "image" && (
-                  <p className="text-xs text-accent">
-                    Рекомендуемый размер: {Math.max(selected.width, 1) * 2}×
-                    {Math.max(selected.height, 1) * 2}px (2×), место на странице {selected.width}×
-                    {selected.height}px
-                    {selected.natural ? ` · оригинал ${selected.natural.w}×${selected.natural.h}` : ""}
-                  </p>
+                  <div className="space-y-2">
+                    <div className="rounded-lg border border-accent/40 bg-accent/10 p-2 text-xs">
+                      <p className="font-medium text-accent">
+                        Загрузите картинку {Math.max(selected.width, 1) * 2}×
+                        {Math.max(selected.height, 1) * 2}px
+                      </p>
+                      <p className="mt-0.5 text-muted-foreground">
+                        Место на странице {selected.width}×{selected.height}px, запас 2× для
+                        Retina
+                        {selected.natural
+                          ? ` · сейчас ${selected.natural.w}×${selected.natural.h}px`
+                          : ""}
+                      </p>
+                    </div>
+                    <label
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDropping(true);
+                      }}
+                      onDragLeave={() => setDropping(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDropping(false);
+                        void onUpload(e.dataTransfer.files, true);
+                      }}
+                      className={`flex cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed px-3 py-5 text-center text-xs transition ${
+                        dropping
+                          ? "border-accent bg-accent/15"
+                          : "border-border hover:border-accent hover:bg-muted"
+                      }`}
+                    >
+                      <Upload className="size-5 text-accent" />
+                      <span className="font-medium">Перетащите файл сюда</span>
+                      <span className="text-muted-foreground">
+                        или нажмите, чтобы выбрать — картинка сразу встанет на место
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => void onUpload(e.target.files, true)}
+                      />
+                    </label>
+                    {uploads.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-[11px] text-muted-foreground">
+                          Ранее загруженные:
+                        </p>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {uploads.slice(0, 12).map((u) => (
+                            <button
+                              key={u.id}
+                              title={`${u.name} · ${u.w}×${u.h}px`}
+                              onClick={() => {
+                                setValue(u.url);
+                                applyValue(u.url);
+                              }}
+                              className="size-14 shrink-0 overflow-hidden rounded border border-border hover:border-accent"
+                            >
+                              <img
+                                src={u.url}
+                                alt={u.name}
+                                className="size-full bg-background object-contain"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
+
                 {selected.kind === "text" ? (
                   <textarea
                     value={value}
@@ -429,6 +587,70 @@ export function EditorOverlay({
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
                   />
                 )}
+
+                <div className="space-y-2 rounded-lg border border-border p-2">
+                  <p className="flex items-center gap-1.5 text-xs font-medium">
+                    <Ruler className="size-3.5 text-primary" />
+                    Размер элемента
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 text-[11px] text-muted-foreground">
+                      Ширина
+                      <input
+                        value={sizeW}
+                        onChange={(e) => setSizeW(e.target.value)}
+                        placeholder={`${selected.width}px`}
+                        className="mt-0.5 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                      />
+                    </label>
+                    <label className="flex-1 text-[11px] text-muted-foreground">
+                      Высота
+                      <input
+                        value={sizeH}
+                        onChange={(e) => setSizeH(e.target.value)}
+                        placeholder={`${selected.height}px`}
+                        className="mt-0.5 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                      />
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {["50%", "75%", "100%", "auto"].map((v) => (
+                      <Button
+                        key={v}
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[11px]"
+                        onClick={() => setSizeW(v)}
+                      >
+                        Ш {v}
+                      </Button>
+                    ))}
+                  </div>
+                  {selected.kind === "image" && (
+                    <div className="flex gap-1">
+                      {(["cover", "contain"] as const).map((f) => (
+                        <Button
+                          key={f}
+                          size="sm"
+                          variant={fit === f ? "secondary" : "outline"}
+                          className="h-7 px-2 text-[11px]"
+                          onClick={() => setFit(fit === f ? "" : f)}
+                        >
+                          {f === "cover" ? "Заполнить" : "Вписать"}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={applySize}>
+                      Применить размер
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={resetSize}>
+                      Сбросить
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={() => applyValue()}>
                     Применить

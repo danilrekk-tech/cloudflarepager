@@ -25,7 +25,6 @@ import {
 } from "@/lib/db.functions";
 import { deleteSite, getSiteStatus } from "@/lib/cf.functions";
 import { useAuth } from "@/hooks/useAuth";
-import { AnnotationBoard } from "@/components/deploy/AnnotationBoard";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -65,6 +64,9 @@ type FeedbackRow = {
   element_label: string;
   breadcrumb?: string;
   element_html?: string;
+  selected_text?: string;
+  w?: number;
+  h?: number;
   message: string;
   author_name: string;
   page_url: string;
@@ -279,6 +281,16 @@ function Dashboard() {
                   <span>{new Date(f.created_at).toLocaleString("ru-RU")}</span>
                 </div>
                 <p className="mt-2 text-sm">{f.message}</p>
+                {f.selected_text && (
+                  <p className="mt-2 rounded-lg border-l-2 border-accent bg-accent/10 px-2 py-1 text-xs">
+                    Выделенный текст: «{f.selected_text}»
+                  </p>
+                )}
+                {Boolean(f.w) && Boolean(f.h) && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Отмеченная область: {Math.round(f.w!)}×{Math.round(f.h!)}px
+                  </p>
+                )}
                 {(f.element_label || f.selector) && (
                   <div className="mt-2 rounded-lg border border-border bg-surface-2 p-2">
                     <p className="text-xs font-medium">
@@ -342,12 +354,6 @@ function Dashboard() {
           </div>
         </section>
       </div>
-
-      {site && (
-        <div className="mt-8">
-          <AnnotationBoard siteId={site.id} url={site.url} />
-        </div>
-      )}
     </main>
   );
 }
