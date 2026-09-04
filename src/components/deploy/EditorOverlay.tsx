@@ -400,18 +400,96 @@ export function EditorOverlay({
             </div>
 
             {selected && (
-              <div className="space-y-2 border-t border-border p-3">
+              <div className="max-h-[46vh] space-y-3 overflow-y-auto border-t border-border p-3">
+                <div className="flex items-center gap-2">
+                  {selected.kind === "image" ? (
+                    <ImageIcon className="size-4 text-accent" />
+                  ) : selected.kind === "link" ? (
+                    <Link2 className="size-4 text-primary" />
+                  ) : (
+                    <Type className="size-4 text-muted-foreground" />
+                  )}
+                  <span className="truncate text-sm font-medium">
+                    {selected.label || selected.selector}
+                  </span>
+                </div>
                 <p className="font-mono text-[11px] break-all text-muted-foreground">
                   {selected.selector}
                 </p>
+
                 {selected.kind === "image" && (
-                  <p className="text-xs text-accent">
-                    Рекомендуемый размер: {Math.max(selected.width, 1) * 2}×
-                    {Math.max(selected.height, 1) * 2}px (2×), место на странице {selected.width}×
-                    {selected.height}px
-                    {selected.natural ? ` · оригинал ${selected.natural.w}×${selected.natural.h}` : ""}
-                  </p>
+                  <div className="space-y-2">
+                    <div className="rounded-lg border border-accent/40 bg-accent/10 p-2 text-xs">
+                      <p className="font-medium text-accent">
+                        Загрузите картинку {Math.max(selected.width, 1) * 2}×
+                        {Math.max(selected.height, 1) * 2}px
+                      </p>
+                      <p className="mt-0.5 text-muted-foreground">
+                        Место на странице {selected.width}×{selected.height}px, запас 2× для
+                        Retina
+                        {selected.natural
+                          ? ` · сейчас ${selected.natural.w}×${selected.natural.h}px`
+                          : ""}
+                      </p>
+                    </div>
+                    <label
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDropping(true);
+                      }}
+                      onDragLeave={() => setDropping(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDropping(false);
+                        void onUpload(e.dataTransfer.files, true);
+                      }}
+                      className={`flex cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed px-3 py-5 text-center text-xs transition ${
+                        dropping
+                          ? "border-accent bg-accent/15"
+                          : "border-border hover:border-accent hover:bg-muted"
+                      }`}
+                    >
+                      <Upload className="size-5 text-accent" />
+                      <span className="font-medium">Перетащите файл сюда</span>
+                      <span className="text-muted-foreground">
+                        или нажмите, чтобы выбрать — картинка сразу встанет на место
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => void onUpload(e.target.files, true)}
+                      />
+                    </label>
+                    {uploads.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-[11px] text-muted-foreground">
+                          Ранее загруженные:
+                        </p>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {uploads.slice(0, 12).map((u) => (
+                            <button
+                              key={u.id}
+                              title={`${u.name} · ${u.w}×${u.h}px`}
+                              onClick={() => {
+                                setValue(u.url);
+                                applyValue(u.url);
+                              }}
+                              className="size-14 shrink-0 overflow-hidden rounded border border-border hover:border-accent"
+                            >
+                              <img
+                                src={u.url}
+                                alt={u.name}
+                                className="size-full bg-background object-contain"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
+
                 {selected.kind === "text" ? (
                   <textarea
                     value={value}
@@ -429,6 +507,70 @@ export function EditorOverlay({
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
                   />
                 )}
+
+                <div className="space-y-2 rounded-lg border border-border p-2">
+                  <p className="flex items-center gap-1.5 text-xs font-medium">
+                    <Ruler className="size-3.5 text-primary" />
+                    Размер элемента
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 text-[11px] text-muted-foreground">
+                      Ширина
+                      <input
+                        value={sizeW}
+                        onChange={(e) => setSizeW(e.target.value)}
+                        placeholder={`${selected.width}px`}
+                        className="mt-0.5 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                      />
+                    </label>
+                    <label className="flex-1 text-[11px] text-muted-foreground">
+                      Высота
+                      <input
+                        value={sizeH}
+                        onChange={(e) => setSizeH(e.target.value)}
+                        placeholder={`${selected.height}px`}
+                        className="mt-0.5 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                      />
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {["50%", "75%", "100%", "auto"].map((v) => (
+                      <Button
+                        key={v}
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[11px]"
+                        onClick={() => setSizeW(v)}
+                      >
+                        Ш {v}
+                      </Button>
+                    ))}
+                  </div>
+                  {selected.kind === "image" && (
+                    <div className="flex gap-1">
+                      {(["cover", "contain"] as const).map((f) => (
+                        <Button
+                          key={f}
+                          size="sm"
+                          variant={fit === f ? "secondary" : "outline"}
+                          className="h-7 px-2 text-[11px]"
+                          onClick={() => setFit(fit === f ? "" : f)}
+                        >
+                          {f === "cover" ? "Заполнить" : "Вписать"}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={applySize}>
+                      Применить размер
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={resetSize}>
+                      Сбросить
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={() => applyValue()}>
                     Применить
