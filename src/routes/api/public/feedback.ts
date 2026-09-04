@@ -81,6 +81,9 @@ export const Route = createFileRoute("/api/public/feedback")({
           page_url: body.page,
           x: body.x,
           y: body.y,
+          w: body.w,
+          h: body.h,
+          selected_text: body.selectedText,
         });
         if (error) return new Response("Failed", { status: 500, headers: CORS });
 
