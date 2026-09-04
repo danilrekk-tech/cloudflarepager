@@ -281,6 +281,16 @@ function Dashboard() {
                   <span>{new Date(f.created_at).toLocaleString("ru-RU")}</span>
                 </div>
                 <p className="mt-2 text-sm">{f.message}</p>
+                {f.selected_text && (
+                  <p className="mt-2 rounded-lg border-l-2 border-accent bg-accent/10 px-2 py-1 text-xs">
+                    Выделенный текст: «{f.selected_text}»
+                  </p>
+                )}
+                {Boolean(f.w) && Boolean(f.h) && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Отмеченная область: {Math.round(f.w!)}×{Math.round(f.h!)}px
+                  </p>
+                )}
                 {(f.element_label || f.selector) && (
                   <div className="mt-2 rounded-lg border border-border bg-surface-2 p-2">
                     <p className="text-xs font-medium">
