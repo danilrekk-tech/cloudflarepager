@@ -341,12 +341,6 @@ function Dashboard() {
           </div>
         </section>
       </div>
-
-      {site && (
-        <div className="mt-8">
-          <AnnotationBoard siteId={site.id} url={site.url} />
-        </div>
-      )}
     </main>
   );
 }
