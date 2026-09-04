@@ -64,6 +64,9 @@ type FeedbackRow = {
   element_label: string;
   breadcrumb?: string;
   element_html?: string;
+  selected_text?: string;
+  w?: number;
+  h?: number;
   message: string;
   author_name: string;
   page_url: string;
