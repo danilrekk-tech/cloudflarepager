@@ -119,6 +119,56 @@ export function EditorOverlay({
     return () => window.removeEventListener("message", onMessage);
   }, [patches, setPatches, logoMode]);
 
+  // Keep the size fields in sync with the currently selected element.
+  useEffect(() => {
+    if (!selected) {
+      setSizeW("");
+      setSizeH("");
+      setFit("");
+      return;
+    }
+    const s = patches.find((p) => p.kind === "size" && p.selector === selected.selector);
+    setSizeW(s && s.kind === "size" ? (s.width ?? "") : "");
+    setSizeH(s && s.kind === "size" ? (s.height ?? "") : "");
+    setFit(s && s.kind === "size" ? (s.fit ?? "") : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.selector, selected?.kind]);
+
+  function norm(v: string) {
+    const t = v.trim();
+    if (!t) return "";
+    return /^[0-9.]+$/.test(t) ? `${t}px` : t;
+  }
+
+  function applySize() {
+    if (!selected) return;
+    const w = norm(sizeW);
+    const h = norm(sizeH);
+    if (!w && !h && !fit) {
+      resetSize();
+      return;
+    }
+    setPatches(
+      upsertPatch(patches, {
+        kind: "size",
+        selector: selected.selector,
+        value: `${w}|${h}|${fit}`,
+        ...(w ? { width: w } : {}),
+        ...(h ? { height: h } : {}),
+        ...(fit ? { fit } : {}),
+      }),
+    );
+    toast.success("Размер применён");
+  }
+
+  function resetSize() {
+    if (!selected) return;
+    setSizeW("");
+    setSizeH("");
+    setFit("");
+    setPatches(patches.filter((p) => !(p.kind === "size" && p.selector === selected.selector)));
+  }
+
   function applyValue(next = value) {
     if (!selected) return;
     if (selected.kind === "link") {
