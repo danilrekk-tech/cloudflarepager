@@ -2,7 +2,15 @@ export type Patch =
   | { kind: "text"; selector: string; value: string }
   | { kind: "image"; selector: string; value: string }
   | { kind: "link"; selector: string; value: string; newTab?: boolean }
-  | { kind: "logo"; selector: string; value: string; width: number; x: number; y: number };
+  | { kind: "logo"; selector: string; value: string; width: number; x: number; y: number }
+  | {
+      kind: "size";
+      selector: string;
+      value: string;
+      width?: string;
+      height?: string;
+      fit?: string;
+    };
 
 export type PatchSet = {
   id: string;
