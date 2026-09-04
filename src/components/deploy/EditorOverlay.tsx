@@ -201,6 +201,12 @@ export function EditorOverlay({
       next.push({ id: `${Date.now()}-${file.name}`, name: file.name, url, ...dim });
     }
     setUploads([...next, ...uploads]);
+    const first = next[0];
+    if (applyToSelected && first && selected?.kind === "image") {
+      setValue(first.url);
+      applyValue(first.url);
+      return;
+    }
     if (next.length) toast.success(`Загружено изображений: ${next.length}`);
   }
 
