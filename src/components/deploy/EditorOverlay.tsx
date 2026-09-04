@@ -59,6 +59,10 @@ export function EditorOverlay({
   const [selected, setSelected] = useState<Slot | null>(null);
   const [value, setValue] = useState("");
   const [logoMode, setLogoMode] = useState<{ url: string; width: number } | null>(null);
+  const [dropping, setDropping] = useState(false);
+  const [sizeW, setSizeW] = useState("");
+  const [sizeH, setSizeH] = useState("");
+  const [fit, setFit] = useState("");
   const frameRef = useRef<HTMLIFrameElement>(null);
   const { sets, saveSet, removeSet } = usePatchSets();
 
