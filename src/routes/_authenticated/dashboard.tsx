@@ -25,7 +25,6 @@ import {
 } from "@/lib/db.functions";
 import { deleteSite, getSiteStatus } from "@/lib/cf.functions";
 import { useAuth } from "@/hooks/useAuth";
-import { AnnotationBoard } from "@/components/deploy/AnnotationBoard";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
