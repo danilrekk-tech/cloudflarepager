@@ -15,6 +15,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Ruler,
+  Sparkles,
+  Wand2,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -22,11 +26,13 @@ import { toast } from "sonner";
 import { composeHtml, withEditor } from "@/lib/pipeline/build";
 import {
   EDITOR_SCRIPT,
+  highlightScript,
   upsertPatch,
   patchKey,
   type Patch,
   type Slot,
 } from "@/lib/pipeline/overrides";
+import { aiGenerateImage, aiTransferContent } from "@/lib/ai.functions";
 import { usePatchSets } from "@/lib/patchsets";
 
 type Msg = Slot & { source: string; type: string; items?: Slot[]; x?: number; y?: number };
@@ -53,7 +59,7 @@ export function EditorOverlay({
 }) {
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [sidebar, setSidebar] = useState(true);
-  const [tab, setTab] = useState<"slots" | "patches" | "uploads" | "sets">("slots");
+  const [tab, setTab] = useState<"slots" | "patches" | "uploads" | "sets" | "ai">("slots");
   const [slots, setSlots] = useState<Slot[]>([]);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Slot | null>(null);
@@ -63,7 +69,15 @@ export function EditorOverlay({
   const [sizeW, setSizeW] = useState("");
   const [sizeH, setSizeH] = useState("");
   const [fit, setFit] = useState("");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [donorUrl, setDonorUrl] = useState("");
+  const [donorNote, setDonorNote] = useState("");
+  const [transferBusy, setTransferBusy] = useState(false);
+  const [transferSummary, setTransferSummary] = useState("");
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const previewWinRef = useRef<Window | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
   const { sets, saveSet, removeSet } = usePatchSets();
 
   const srcDoc = useMemo(
@@ -210,6 +224,129 @@ export function EditorOverlay({
     if (next.length) toast.success(`Загружено изображений: ${next.length}`);
   }
 
+  /** Fits a generated image into the exact 2× slot box without distortion. */
+  async function fitToSlot(url: string, w: number, h: number) {
+    if (w < 8 || h < 8) return url;
+    const img = await new Promise<HTMLImageElement | null>((res) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => res(null);
+      i.src = url;
+    });
+    if (!img) return url;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return url;
+    const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+    const dw = img.naturalWidth * scale;
+    const dh = img.naturalHeight * scale;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    return canvas.toDataURL("image/png");
+  }
+
+  function pageContext() {
+    return slots
+      .filter((s) => s.kind === "text" && s.value.trim().length > 2)
+      .slice(0, 25)
+      .map((s) => s.value.trim().slice(0, 80))
+      .join(" · ")
+      .slice(0, 1200);
+  }
+
+  async function generateImage() {
+    if (!selected || selected.kind !== "image") return;
+    if (!aiPrompt.trim()) {
+      toast.error("Опишите, что должно быть на картинке");
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const targetW = Math.max(selected.width, 1) * 2;
+      const targetH = Math.max(selected.height, 1) * 2;
+      const { url } = await aiGenerateImage({
+        data: {
+          prompt: aiPrompt.trim(),
+          width: targetW,
+          height: targetH,
+          context: pageContext(),
+        },
+      });
+      const fitted = await fitToSlot(url, targetW, targetH);
+      const dim = await new Promise<{ w: number; h: number }>((res) => {
+        const i = new Image();
+        i.onload = () => res({ w: i.naturalWidth, h: i.naturalHeight });
+        i.onerror = () => res({ w: targetW, h: targetH });
+        i.src = fitted;
+      });
+      setUploads([
+        { id: `ai-${Date.now()}`, name: `ИИ: ${aiPrompt.slice(0, 24)}`, url: fitted, ...dim },
+        ...uploads,
+      ]);
+      setValue(fitted);
+      applyValue(fitted);
+      toast.success(`Картинка сгенерирована (${dim.w}×${dim.h}px)`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function runTransfer() {
+    const url = donorUrl.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      toast.error("Укажите ссылку на сайт клиента (https://…)");
+      return;
+    }
+    const textSlots = slots.filter((s) => s.kind === "text" && s.value.trim().length > 1);
+    if (!textSlots.length) {
+      toast.error("Сначала дождитесь сканирования элементов");
+      return;
+    }
+    setTransferBusy(true);
+    setTransferSummary("");
+    try {
+      const res = await aiTransferContent({
+        data: {
+          url,
+          slots: textSlots
+            .slice(0, 120)
+            .map((s) => ({ selector: s.selector, label: s.label, value: s.value })),
+          ...(donorNote.trim() ? { instructions: donorNote.trim() } : {}),
+        },
+      });
+      let next = patches;
+      for (const item of res.items) {
+        next = upsertPatch(next, { kind: "text", selector: item.selector, value: item.value });
+      }
+      setPatches(next);
+      setTransferSummary(res.summary);
+      toast.success(`Перенесено текстов: ${res.items.length}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setTransferBusy(false);
+    }
+  }
+
+  function openPreviewWindow() {
+    const html = composeHtml(baseHtml, patches, navStub).replace(
+      "</body>",
+      `<script>${highlightScript(patches)}</script></body>`,
+    );
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    previewUrlRef.current = url;
+    previewWinRef.current?.close();
+    previewWinRef.current = window.open(url, "_blank", "noopener,width=1440,height=900");
+    if (!previewWinRef.current) toast.error("Браузер заблокировал новое окно");
+    else toast.success("Открыт предпросмотр с подсветкой изменений");
+  }
+
+
   const filtered = slots.filter(
     (s) =>
       !query ||
@@ -249,6 +386,10 @@ export function EditorOverlay({
           <RotateCcw className="size-4" />
           Пересканировать
         </Button>
+        <Button size="sm" variant="secondary" onClick={openPreviewWindow}>
+          <ExternalLink className="size-4" />
+          Предпросмотр на сайте
+        </Button>
         <Button
           size="sm"
           variant="outline"
@@ -284,6 +425,7 @@ export function EditorOverlay({
                   ["patches", "Правки"],
                   ["uploads", "Мои файлы"],
                   ["sets", "Наборы"],
+                  ["ai", "ИИ"],
                 ] as const
               ).map(([id, label]) => (
                 <button
@@ -475,6 +617,89 @@ export function EditorOverlay({
                       </Button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {tab === "ai" && (
+                <div className="space-y-4">
+                  <div className="space-y-2 rounded-lg border border-accent/40 bg-accent/10 p-3">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-accent">
+                      <Sparkles className="size-4" />
+                      Генерация картинки
+                    </p>
+                    {selected?.kind === "image" ? (
+                      <>
+                        <p className="text-[11px] text-muted-foreground">
+                          Для места {selected.width}×{selected.height}px — картинка будет создана в{" "}
+                          {Math.max(selected.width, 1) * 2}×{Math.max(selected.height, 1) * 2}px.
+                        </p>
+                        <textarea
+                          value={aiPrompt}
+                          onChange={(e) => setAiPrompt(e.target.value)}
+                          rows={3}
+                          placeholder="Например: уютная кофейня с деревянными столами, тёплый свет"
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                        />
+                        <Button size="sm" disabled={aiBusy} onClick={() => void generateImage()}>
+                          {aiBusy ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="size-4" />
+                          )}
+                          Сгенерировать и поставить
+                        </Button>
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground">
+                        Выберите на странице картинку, которую нужно заменить.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 rounded-lg border border-border p-3">
+                    <p className="flex items-center gap-1.5 text-sm font-medium">
+                      <Wand2 className="size-4 text-primary" />
+                      ИИ-перенос с сайта клиента
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Укажите ссылку — ИИ прочитает сайт и подставит его тексты в подходящие места
+                      шаблона.
+                    </p>
+                    <input
+                      value={donorUrl}
+                      onChange={(e) => setDonorUrl(e.target.value)}
+                      placeholder="https://сайт-клиента.ru"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                    />
+                    <textarea
+                      value={donorNote}
+                      onChange={(e) => setDonorNote(e.target.value)}
+                      rows={2}
+                      placeholder="Пожелания: тон, что подчеркнуть, чего избегать (необязательно)"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                    />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={transferBusy}
+                      onClick={() => void runTransfer()}
+                    >
+                      {transferBusy ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="size-4" />
+                      )}
+                      Перенести контент
+                    </Button>
+                    {transferSummary && (
+                      <p className="rounded-md bg-muted p-2 text-[11px] text-muted-foreground">
+                        {transferSummary}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Тексты попадают в «Правки» — их можно поправить или сбросить.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
