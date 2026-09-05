@@ -386,6 +386,10 @@ export function EditorOverlay({
           <RotateCcw className="size-4" />
           Пересканировать
         </Button>
+        <Button size="sm" variant="secondary" onClick={openPreviewWindow}>
+          <ExternalLink className="size-4" />
+          Предпросмотр на сайте
+        </Button>
         <Button
           size="sm"
           variant="outline"
