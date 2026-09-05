@@ -425,6 +425,7 @@ export function EditorOverlay({
                   ["patches", "Правки"],
                   ["uploads", "Мои файлы"],
                   ["sets", "Наборы"],
+                  ["ai", "ИИ"],
                 ] as const
               ).map(([id, label]) => (
                 <button
