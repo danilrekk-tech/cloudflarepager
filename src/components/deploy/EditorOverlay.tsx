@@ -224,6 +224,129 @@ export function EditorOverlay({
     if (next.length) toast.success(`Загружено изображений: ${next.length}`);
   }
 
+  /** Fits a generated image into the exact 2× slot box without distortion. */
+  async function fitToSlot(url: string, w: number, h: number) {
+    if (w < 8 || h < 8) return url;
+    const img = await new Promise<HTMLImageElement | null>((res) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => res(null);
+      i.src = url;
+    });
+    if (!img) return url;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return url;
+    const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+    const dw = img.naturalWidth * scale;
+    const dh = img.naturalHeight * scale;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    return canvas.toDataURL("image/png");
+  }
+
+  function pageContext() {
+    return slots
+      .filter((s) => s.kind === "text" && s.value.trim().length > 2)
+      .slice(0, 25)
+      .map((s) => s.value.trim().slice(0, 80))
+      .join(" · ")
+      .slice(0, 1200);
+  }
+
+  async function generateImage() {
+    if (!selected || selected.kind !== "image") return;
+    if (!aiPrompt.trim()) {
+      toast.error("Опишите, что должно быть на картинке");
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const targetW = Math.max(selected.width, 1) * 2;
+      const targetH = Math.max(selected.height, 1) * 2;
+      const { url } = await aiGenerateImage({
+        data: {
+          prompt: aiPrompt.trim(),
+          width: targetW,
+          height: targetH,
+          context: pageContext(),
+        },
+      });
+      const fitted = await fitToSlot(url, targetW, targetH);
+      const dim = await new Promise<{ w: number; h: number }>((res) => {
+        const i = new Image();
+        i.onload = () => res({ w: i.naturalWidth, h: i.naturalHeight });
+        i.onerror = () => res({ w: targetW, h: targetH });
+        i.src = fitted;
+      });
+      setUploads([
+        { id: `ai-${Date.now()}`, name: `ИИ: ${aiPrompt.slice(0, 24)}`, url: fitted, ...dim },
+        ...uploads,
+      ]);
+      setValue(fitted);
+      applyValue(fitted);
+      toast.success(`Картинка сгенерирована (${dim.w}×${dim.h}px)`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function runTransfer() {
+    const url = donorUrl.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      toast.error("Укажите ссылку на сайт клиента (https://…)");
+      return;
+    }
+    const textSlots = slots.filter((s) => s.kind === "text" && s.value.trim().length > 1);
+    if (!textSlots.length) {
+      toast.error("Сначала дождитесь сканирования элементов");
+      return;
+    }
+    setTransferBusy(true);
+    setTransferSummary("");
+    try {
+      const res = await aiTransferContent({
+        data: {
+          url,
+          slots: textSlots
+            .slice(0, 120)
+            .map((s) => ({ selector: s.selector, label: s.label, value: s.value })),
+          ...(donorNote.trim() ? { instructions: donorNote.trim() } : {}),
+        },
+      });
+      let next = patches;
+      for (const item of res.items) {
+        next = upsertPatch(next, { kind: "text", selector: item.selector, value: item.value });
+      }
+      setPatches(next);
+      setTransferSummary(res.summary);
+      toast.success(`Перенесено текстов: ${res.items.length}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setTransferBusy(false);
+    }
+  }
+
+  function openPreviewWindow() {
+    const html = composeHtml(baseHtml, patches, navStub).replace(
+      "</body>",
+      `<script>${highlightScript(patches)}</script></body>`,
+    );
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    previewUrlRef.current = url;
+    previewWinRef.current?.close();
+    previewWinRef.current = window.open(url, "_blank", "noopener,width=1440,height=900");
+    if (!previewWinRef.current) toast.error("Браузер заблокировал новое окно");
+    else toast.success("Открыт предпросмотр с подсветкой изменений");
+  }
+
+
   const filtered = slots.filter(
     (s) =>
       !query ||
