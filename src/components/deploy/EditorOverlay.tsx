@@ -59,7 +59,7 @@ export function EditorOverlay({
 }) {
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [sidebar, setSidebar] = useState(true);
-  const [tab, setTab] = useState<"slots" | "patches" | "uploads" | "sets">("slots");
+  const [tab, setTab] = useState<"slots" | "patches" | "uploads" | "sets" | "ai">("slots");
   const [slots, setSlots] = useState<Slot[]>([]);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Slot | null>(null);
@@ -69,7 +69,15 @@ export function EditorOverlay({
   const [sizeW, setSizeW] = useState("");
   const [sizeH, setSizeH] = useState("");
   const [fit, setFit] = useState("");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [donorUrl, setDonorUrl] = useState("");
+  const [donorNote, setDonorNote] = useState("");
+  const [transferBusy, setTransferBusy] = useState(false);
+  const [transferSummary, setTransferSummary] = useState("");
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const previewWinRef = useRef<Window | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
   const { sets, saveSet, removeSet } = usePatchSets();
 
   const srcDoc = useMemo(
