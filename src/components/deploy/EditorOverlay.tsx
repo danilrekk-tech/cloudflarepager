@@ -619,6 +619,89 @@ export function EditorOverlay({
                   ))}
                 </div>
               )}
+
+              {tab === "ai" && (
+                <div className="space-y-4">
+                  <div className="space-y-2 rounded-lg border border-accent/40 bg-accent/10 p-3">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-accent">
+                      <Sparkles className="size-4" />
+                      Генерация картинки
+                    </p>
+                    {selected?.kind === "image" ? (
+                      <>
+                        <p className="text-[11px] text-muted-foreground">
+                          Для места {selected.width}×{selected.height}px — картинка будет создана в{" "}
+                          {Math.max(selected.width, 1) * 2}×{Math.max(selected.height, 1) * 2}px.
+                        </p>
+                        <textarea
+                          value={aiPrompt}
+                          onChange={(e) => setAiPrompt(e.target.value)}
+                          rows={3}
+                          placeholder="Например: уютная кофейня с деревянными столами, тёплый свет"
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                        />
+                        <Button size="sm" disabled={aiBusy} onClick={() => void generateImage()}>
+                          {aiBusy ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="size-4" />
+                          )}
+                          Сгенерировать и поставить
+                        </Button>
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground">
+                        Выберите на странице картинку, которую нужно заменить.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 rounded-lg border border-border p-3">
+                    <p className="flex items-center gap-1.5 text-sm font-medium">
+                      <Wand2 className="size-4 text-primary" />
+                      ИИ-перенос с сайта клиента
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Укажите ссылку — ИИ прочитает сайт и подставит его тексты в подходящие места
+                      шаблона.
+                    </p>
+                    <input
+                      value={donorUrl}
+                      onChange={(e) => setDonorUrl(e.target.value)}
+                      placeholder="https://сайт-клиента.ru"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                    />
+                    <textarea
+                      value={donorNote}
+                      onChange={(e) => setDonorNote(e.target.value)}
+                      rows={2}
+                      placeholder="Пожелания: тон, что подчеркнуть, чего избегать (необязательно)"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                    />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={transferBusy}
+                      onClick={() => void runTransfer()}
+                    >
+                      {transferBusy ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="size-4" />
+                      )}
+                      Перенести контент
+                    </Button>
+                    {transferSummary && (
+                      <p className="rounded-md bg-muted p-2 text-[11px] text-muted-foreground">
+                        {transferSummary}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Тексты попадают в «Правки» — их можно поправить или сбросить.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {selected && (
