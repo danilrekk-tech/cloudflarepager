@@ -15,6 +15,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Ruler,
+  Sparkles,
+  Wand2,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -22,11 +26,13 @@ import { toast } from "sonner";
 import { composeHtml, withEditor } from "@/lib/pipeline/build";
 import {
   EDITOR_SCRIPT,
+  highlightScript,
   upsertPatch,
   patchKey,
   type Patch,
   type Slot,
 } from "@/lib/pipeline/overrides";
+import { aiGenerateImage, aiTransferContent } from "@/lib/ai.functions";
 import { usePatchSets } from "@/lib/patchsets";
 
 type Msg = Slot & { source: string; type: string; items?: Slot[]; x?: number; y?: number };
