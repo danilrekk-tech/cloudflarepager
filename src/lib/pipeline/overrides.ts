@@ -246,3 +246,57 @@ export const EDITOR_SCRIPT = `(function(){
   });
   setTimeout(inventory, 400);
 })();`;
+
+/**
+ * Marks every element touched by a patch with an outline + badge. Used by the
+ * "preview on site" window so изменения видно перед деплоем.
+ */
+export function highlightScript(patches: Patch[]) {
+  return `(function(){
+  var SEL = ${JSON.stringify([...new Set(patches.map((p) => p.selector))])};
+  var LABEL = ${JSON.stringify(
+    patches.reduce<Record<string, string>>((acc, p) => {
+      const name =
+        p.kind === "text"
+          ? "текст"
+          : p.kind === "image"
+            ? "изображение"
+            : p.kind === "link"
+              ? "ссылка"
+              : p.kind === "logo"
+                ? "логотип"
+                : "размер";
+      acc[p.selector] = acc[p.selector] ? acc[p.selector] + ", " + name : name;
+      return acc;
+    }, {}),
+  )};
+  var on = true;
+  var st = document.createElement("style");
+  st.textContent = "[data-px-changed]{outline:2px solid #22d3ee !important;outline-offset:2px;box-shadow:0 0 0 6px rgba(34,211,238,.15)}[data-px-changed]::after{content:attr(data-px-changed);position:absolute;transform:translateY(-100%);background:#0891b2;color:#fff;font:600 11px/1.4 system-ui,sans-serif;padding:2px 6px;border-radius:6px;z-index:2147483646;pointer-events:none}";
+  document.head.appendChild(st);
+  function mark(){
+    document.querySelectorAll("[data-px-changed]").forEach(function(n){ if(!on) n.removeAttribute("data-px-changed"); });
+    if (!on) return;
+    SEL.forEach(function(s){
+      var els = []; try { els = Array.prototype.slice.call(document.querySelectorAll(s)); } catch(e){}
+      els.forEach(function(el){
+        el.setAttribute("data-px-changed", LABEL[s] || "изменено");
+        if (getComputedStyle(el).position === "static") el.style.position = "relative";
+      });
+    });
+  }
+  function bar(){
+    var b = document.createElement("div");
+    b.setAttribute("style","position:fixed;left:50%;bottom:20px;transform:translateX(-50%);display:flex;gap:10px;align-items:center;background:#111827;color:#fff;padding:10px 16px;border-radius:999px;font:500 13px/1.2 system-ui,sans-serif;z-index:2147483647;box-shadow:0 12px 30px rgba(0,0,0,.4)");
+    var t = document.createElement("span");
+    t.textContent = "Предпросмотр перед деплоем · изменённых мест: " + SEL.length;
+    var btn = document.createElement("button");
+    btn.textContent = "Скрыть подсветку";
+    btn.setAttribute("style","background:#22d3ee;color:#06202a;border:0;border-radius:999px;padding:6px 12px;font:600 12px system-ui,sans-serif;cursor:pointer");
+    btn.onclick = function(){ on = !on; btn.textContent = on ? "Скрыть подсветку" : "Показать подсветку"; mark(); };
+    b.appendChild(t); b.appendChild(btn); document.body.appendChild(b);
+  }
+  function boot(){ mark(); bar(); new MutationObserver(mark).observe(document.documentElement,{childList:true,subtree:true}); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
+})();`;
+}
